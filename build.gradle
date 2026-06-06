@@ -2,16 +2,15 @@ plugins {
     id 'com.android.application' version '8.6.0'
 }
 
-// BEGINNER-FRIENDLY AUTO-SCANNER: Checks your root screen before trying to build
 afterEvaluate {
     if (!file("AndroidManifest.xml").exists()) {
-        throw new GradleException("\n\n❌ ERROR: 'AndroidManifest.xml' is missing from your repository root screen!\nMake sure it is uploaded and spelled exactly right (Case-Sensitive).\n\n")
+        throw new GradleException("❌ AndroidManifest.xml is missing from root!")
     }
     if (!file("lifting_cal.html").exists()) {
-        throw new GradleException("\n\n❌ ERROR: 'lifting_cal.html' is missing from your repository root screen!\nPlease upload your calculator HTML file.\n\n")
+        throw new GradleException("❌ lifting_cal.html is missing from root!")
     }
     if (!file("ic_launcher.png").exists()) {
-        throw new GradleException("\n\n❌ ERROR: 'ic_launcher.png' is missing from your repository root screen!\nPlease upload your app icon image file.\n\n")
+        throw new GradleException("❌ ic_launcher.png is missing from root!")
     }
 }
 
@@ -36,21 +35,29 @@ android {
         main {
             manifest.srcFile 'AndroidManifest.xml'
             java.srcDirs = ['.']
-            assets.srcDirs = ['.']
+            assets.srcDirs = ["${project.buildDir}/generated/assets/automatedAssets"]
             res.srcDirs = ["${project.buildDir}/generated/res/automatedAssets"]
         }
     }
 }
 
-// AUTOMATION WORKER: Dynamically maps your root icon for the compiler
+// AUTOMATION WORKER 1: Isolates the icon resource cleanly
 tasks.register('processAutomatedAssets', Copy) {
     from '.'
     into "${project.buildDir}/generated/res/automatedAssets/mipmap"
     include 'ic_launcher.png'
 }
 
+// AUTOMATION WORKER 2: Isolates the HTML web asset cleanly
+tasks.register('processAutomatedWebAssets', Copy) {
+    from '.'
+    into "${project.buildDir}/generated/assets/automatedAssets"
+    include 'lifting_cal.html'
+}
+
 afterEvaluate {
     tasks.named('preBuild').configure {
         dependsOn processAutomatedAssets
+        dependsOn processAutomatedWebAssets
     }
 }
