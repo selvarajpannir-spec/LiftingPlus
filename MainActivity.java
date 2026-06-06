@@ -21,61 +21,77 @@ public class MainActivity extends Activity {
         webView = new WebView(this);
         WebSettings webSettings = webView.getSettings();
         
-        // Base WebApp requirements
+        // Base WebApp offline requirements
         webSettings.setJavaScriptEnabled(true);
         webSettings.setDomStorageEnabled(true);
         webSettings.setAllowFileAccess(true);
         webSettings.setAllowContentAccess(true);
         webSettings.setDatabaseEnabled(true);
 
-        // FIX 1: Enable wide responsive viewports (Forces layout engine to mimic mobile Chrome browser scaling)
-        webSettings.setUseWideViewPort(true);
-        webSettings.setLoadWithOverviewMode(true);
+        // Turn off desktop viewport emulation so print modules use natural fluid scaling
+        webSettings.setUseWideViewPort(false);
+        webSettings.setLoadWithOverviewMode(false);
 
-        // JavaScript Bridge for interception
+        // JavaScript Native Bridge
         webView.addJavascriptInterface(new Object() {
             @JavascriptInterface
             public void triggerPrint() {
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        // FIX 2: Inject CSS rules immediately before generating the print document adapter
-                        // This scales grids, removes clipped double-margins, and forces a crisp page alignment
-                        String injectCss = "var style = document.createElement('style');" +
-                                "style.type = 'text/css';" +
-                                "style.innerHTML = '@media print { " +
-                                "html, body { width: 100% !important; margin: 0 !important; padding: 10mm !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; } " +
-                                "*, *:before, *:after { box-sizing: border-box !important; } " +
-                                "img, canvas, svg, table { max-width: 100% !important; height: auto !important; page-break-inside: avoid !important; } " +
-                                ".container, main, div { max-width: 100% !important; width: 100% !important; } " +
-                                "}';" +
-                                "document.head.appendChild(style);";
-
-                        webView.evaluateJavascript(injectCss, null);
-
-                        // Give the DOM a split second to calculate the style adjustment before sending to spooler
-                        webView.postDelayed(new Runnable() {
-                            @Override
-                            public void run() {
-                                PrintManager printManager = (PrintManager) getSystemService(Context.PRINT_SERVICE);
-                                if (printManager != null) {
-                                    PrintDocumentAdapter printAdapter = webView.createPrintDocumentAdapter("LiftingPlus Document");
-                                    String jobName = "LiftingPlus Export";
-                                    printManager.print(jobName, printAdapter, new PrintAttributes.Builder().build());
-                                }
-                            }
-                        }, 150);
+                        PrintManager printManager = (PrintManager) getSystemService(Context.PRINT_SERVICE);
+                        if (printManager != null) {
+                            PrintDocumentAdapter printAdapter = webView.createPrintDocumentAdapter("LiftingPlus Document");
+                            String jobName = "LiftingPlus Export";
+                            printManager.print(jobName, printAdapter, new PrintAttributes.Builder().build());
+                        }
                     }
                 });
             }
         }, "AndroidPrint");
 
-        // Set up the router routing window.print() to our native engine
+        // UI Router & Style Injector
         webView.setWebViewClient(new WebViewClient() {
             @Override
             public void onPageFinished(WebView view, String url) {
                 super.onPageFinished(view, url);
+                
+                // 1. Map standard window print requests to the native interface
                 view.evaluateJavascript("window.print = function() { AndroidPrint.triggerPrint(); };", null);
+
+                // 2. Inject a robust print-media stylesheet immediately when the page finishes loading.
+                // This strips out complex side-by-side flex/grid rule constraints during printing 
+                // and forces elements to stack sequentially with crisp alignments.
+                String printLayoutFixCss = "var style = document.createElement('style');" +
+                        "style.type = 'text/css';" +
+                        "style.innerHTML = '@media print { " +
+                        "html, body, main, .container, .row, [class*=\"col-\"] { " +
+                        "  width: 100% !important; " +
+                        "  max-width: 100% !important; " +
+                        "  display: block !important; " +
+                        "  float: none !important; " +
+                        "  padding: 4mm !important; " +
+                        "  margin: 0 !important; " +
+                        "  box-sizing: border-box !important; " +
+                        "} " +
+                        "div, section, .card, .box { " +
+                        "  display: block !important; " +
+                        "  width: 100% !important; " +
+                        "  max-width: 100% !important; " +
+                        "  float: none !important; " +
+                        "  page-break-inside: avoid !important; " +
+                        "  box-sizing: border-box !important; " +
+                        "} " +
+                        "img, canvas, svg, table { " +
+                        "  max-width: 100% !important; " +
+                        "  height: auto !important; " +
+                        "  display: block !important; " +
+                        "  margin: 0 auto !important; " +
+                        "} " +
+                        "}';" +
+                        "document.head.appendChild(style);";
+
+                view.evaluateJavascript(printLayoutFixCss, null);
             }
         });
         
@@ -91,5 +107,4 @@ public class MainActivity extends Activity {
             super.onBackPressed();
         }
     }
-                                    }
-                                                       
+                    }
