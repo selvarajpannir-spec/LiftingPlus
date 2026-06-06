@@ -2,6 +2,19 @@ plugins {
     id 'com.android.application' version '8.6.0'
 }
 
+// BEGINNER-FRIENDLY AUTO-SCANNER: Checks your root screen before trying to build
+afterEvaluate {
+    if (!file("AndroidManifest.xml").exists()) {
+        throw new GradleException("\n\n❌ ERROR: 'AndroidManifest.xml' is missing from your repository root screen!\nMake sure it is uploaded and spelled exactly right (Case-Sensitive).\n\n")
+    }
+    if (!file("lifting_cal.html").exists()) {
+        throw new GradleException("\n\n❌ ERROR: 'lifting_cal.html' is missing from your repository root screen!\nPlease upload your calculator HTML file.\n\n")
+    }
+    if (!file("ic_launcher.png").exists()) {
+        throw new GradleException("\n\n❌ ERROR: 'ic_launcher.png' is missing from your repository root screen!\nPlease upload your app icon image file.\n\n")
+    }
+}
+
 android {
     namespace 'com.lifting.plus'
     compileSdk 35
@@ -29,7 +42,7 @@ android {
     }
 }
 
-// AUTOMATION WORKER: Grabs your root icon file and sets up paths inside the cloud virtual machine
+// AUTOMATION WORKER: Dynamically maps your root icon for the compiler
 tasks.register('processAutomatedAssets', Copy) {
     from '.'
     into "${project.buildDir}/generated/res/automatedAssets/mipmap"
