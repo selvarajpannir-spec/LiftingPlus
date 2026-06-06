@@ -1,16 +1,5 @@
-
-buildscript {
-    repositories {
-        google()
-        mavenCentral()
-    }
-    dependencies {
-        classpath 'com.android.tools.build:gradle:8.6.0'
-    }
-}
-
 plugins {
-    id 'com.android.application'
+    id 'com.android.application' version '8.6.0'
 }
 
 android {
@@ -40,7 +29,7 @@ android {
     }
 }
 
-// AUTOMATION WORKER: Dynamically creates proper resource paths right inside the cloud build environment
+// AUTOMATION WORKER: Grabs your root icon file and sets up paths inside the cloud virtual machine
 tasks.register('processAutomatedAssets', Copy) {
     from '.'
     into "${project.buildDir}/generated/res/automatedAssets/mipmap"
@@ -51,9 +40,4 @@ afterEvaluate {
     tasks.named('preBuild').configure {
         dependsOn processAutomatedAssets
     }
-}
-
-repositories {
-    google()
-    mavenCentral()
 }
