@@ -12,6 +12,9 @@ afterEvaluate {
     if (!file("ic_launcher.png").exists()) {
         throw new GradleException("❌ ic_launcher.png is missing from root!")
     }
+    if (!file("MainActivity.java").exists()) {
+        throw new GradleException("❌ MainActivity.java is missing from root!")
+    }
 }
 
 android {
@@ -34,7 +37,7 @@ android {
     sourceSets {
         main {
             manifest.srcFile 'AndroidManifest.xml'
-            java.srcDirs = ['.']
+            java.srcDirs = ["${project.buildDir}/generated/source/automatedJava"]
             assets.srcDirs = ["${project.buildDir}/generated/assets/automatedAssets"]
             res.srcDirs = ["${project.buildDir}/generated/res/automatedAssets"]
         }
@@ -55,9 +58,17 @@ tasks.register('processAutomatedWebAssets', Copy) {
     include 'lifting_cal.html'
 }
 
+// AUTOMATION WORKER 3: Isolates the Java source code cleanly matching the package structure
+tasks.register('processAutomatedJava', Copy) {
+    from '.'
+    into "${project.buildDir}/generated/source/automatedJava/com/lifting/plus"
+    include '*.java'
+}
+
 afterEvaluate {
     tasks.named('preBuild').configure {
         dependsOn processAutomatedAssets
         dependsOn processAutomatedWebAssets
+        dependsOn processAutomatedJava
     }
 }
